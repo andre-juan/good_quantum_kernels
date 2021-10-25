@@ -186,13 +186,16 @@ def subsample_dpp(X, y, n_rows, n_cols):
     this is just a wrapper of the previous functions
     '''
     
+    aux = pd.DataFrame(StandardScaler().fit_transform(X),
+                       index=X.index)
+    
     if n_cols is None:
     
-        ans = row_sample_k_dpp_stratified(X, y, n=n_rows)
+        ans = row_sample_k_dpp_stratified(aux, y, n=n_rows)
     
     else:
         
-        ans = row_sample_k_dpp_stratified(col_sample_k_dpp(X, feat_num=n_cols), y, n=n_rows)
+        ans = row_sample_k_dpp_stratified(col_sample_k_dpp(aux, feat_num=n_cols), y, n=n_rows)
     
     return ans
     
@@ -201,7 +204,8 @@ def subsample_dpp(X, y, n_rows, n_cols):
 
 def subsample_pca(X, n):
     '''
-    returns X with first n PCs'''
+    returns X with first n PCs
+    '''
 
     aux = StandardScaler().fit_transform(X)
     X_pca = pd.DataFrame(PCA(n_components=n).fit_transform(aux),
@@ -213,6 +217,13 @@ def subsample_pca(X, n):
 #######################################################################################
 
 def pre_process_data(X, y, dpp=False, n_rows=50, n_cols=2, pca=False, n_pcs=2):
+    '''
+    this functions wraps the 2 preprocessing otpions.
+    notice that we also normalize the data by default,
+    what is interesting for dpp, mandatory for pca,
+    but is also interesting to have for quantum kernels,
+    given the periodic nature of quantum rotations.
+    '''
     
     # sub-sampling ____________________________________________
     
@@ -224,6 +235,10 @@ def pre_process_data(X, y, dpp=False, n_rows=50, n_cols=2, pca=False, n_pcs=2):
     if pca:
         
         X = subsample_pca(X, n_pcs)
+        
+    # scale always. if already scaled, there's no effect, so that's okay
+    X = pd.DataFrame(StandardScaler().fit_transform(X),
+                     index=X.index)
 
     # this is important to construct the feature map!
     feature_dim = X.shape[1]
