@@ -4,10 +4,10 @@ This repository is associated to the project "Good quantum kernels and where to 
 
 This repository is organized as follows:
 
-- folder `code`: has a .py files with all the important functions used in the framework. That is the core of the prohject. In the folder, you can also find notebook files where the framework is executed;
-- folder `results`: has csv files with the results of the execution of the framework applied to particular datasets. Please see the notebooks as well as the .py files to understand what is this csv files and how it is generated;
-- pdf file `good_quantum_kernels_details`: has a detailed explanation on the idea and how it works. Please read it to fully understand everything that was done!
-- pdf file `presentation_good_quantum_kernels`: is the presentation submitted to the hackathon, where the main ideas and results of the project are explained.
+- folder `code`: has a .py file with all the important functions used in the framework. That is the core of the project. In the folder, you can also find notebook files where the framework is executed;
+- folder `results`: has csv files with the results of the execution of the framework applied to particular datasets. Please see the notebooks as well as the .py file to understand what these csv files contain and how they are generated;
+- pdf file `good_quantum_kernels_details`: has a detailed explanation on the components of the framework, their motivation and justification. Please read it to fully understand everything that was done!
+- pdf file `presentation_good_quantum_kernels`: is the presentation submitted to the hackathon, where the main ideas and results of the project are described.
 ________________________
 
 Below, the project description is provided.
