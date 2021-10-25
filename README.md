@@ -1,5 +1,7 @@
 # Good quantum kernels and where to find them
 
+<img src="./cover.JPG" width=800 class="center"/>
+
 This repository is associated to the project "Good quantum kernels and where to find them", proposed for participation in Qiskit Fall Fest 2021, in particular in the Campaign Munich Fall Fest Hackathon (PushQuantum) - TUM/LMU. You can read more about the hackathon [here](https://qiskitfallfest.hypeinnovation.com/servlet/hype/IMT?userAction=Browse&templateName=&documentId=616a8e9879f6c27b7d5a68341f69e231), and see the idea's page [here](https://qiskitfallfest.hypeinnovation.com/servlet/hype/IMT?documentTableId=396317851978662184&userAction=Browse&templateName=&documentId=1b4dc7810e5396bd4695a30a937af90f). 
 
 This repository is organized as follows:
