@@ -225,6 +225,14 @@ def pre_process_data(X, y, dpp=False, n_rows=50, n_cols=2, pca=False, n_pcs=2):
     given the periodic nature of quantum rotations.
     '''
     
+    X = pd.DataFrame(X, 
+                 columns=[f"x{i+1}" 
+                          for i in range(X.shape[1])]) if not isinstance(X, (pd.DataFrame, 
+                                                                             pd.core.frame.DataFrame)) else X
+    
+    y = pd.Series(y, name="y") if not isinstance(y, (pd.DataFrame, 
+                                                 pd.core.frame.DataFrame)) else y
+    
     # sub-sampling ____________________________________________
     
     if dpp:
@@ -293,11 +301,16 @@ def show_figure(fig):
 #######################################################################################
 #######################################################################################   
     
-def plot_decision_boundary(model, X, X_train, y_train, X_test, y_test,
+def plot_decision_boundary(model, X_train, y_train, X_test, y_test,
                            title="decision boundary", border=None, spacing=0.05,
                            quantum_kernel=True, reps=None, paulis=None, entanglement=None,
                            shots=None):
     
+    # to construct the meshgrid below, I must look to the entire feature space.
+    # in order to do so, I'll concatenate training and testing data. 
+    # this is specially important given that the original feature matrix X 
+    # may have been subsampled in the preprocessing step!
+    X = pd.concat([X_train, X_test]).copy()
     
     if X.shape[1] != 2:
         
@@ -699,7 +712,7 @@ def construct_quantum_gram(reps, paulis, entanglement, X1, X2=None, shots=1024, 
 #######################################################################################
 #######################################################################################
 
-def qsvm(X, X_train, y_train, X_test, y_test, reps, paulis, entanglement, shots=1024, plot_stuff=True,
+def qsvm(X_train, y_train, X_test, y_test, reps, paulis, entanglement, shots=1024, plot_stuff=True,
          plot_boundary = False, title="decision boundary", border=None, spacing=0.05, quantum_kernel=True):
     '''
     this function computes the training and test gram matrices, and train a classical SVM classifier
@@ -741,7 +754,7 @@ def qsvm(X, X_train, y_train, X_test, y_test, reps, paulis, entanglement, shots=
         
     if plot_boundary:
         
-        plot_decision_boundary(svm, X, X_train, y_train, X_test, y_test,
+        plot_decision_boundary(svm, X_train, y_train, X_test, y_test,
                                title, border, spacing, quantum_kernel, reps, paulis, entanglement,
                                shots)
 
@@ -757,6 +770,7 @@ def qsvm(X, X_train, y_train, X_test, y_test, reps, paulis, entanglement, shots=
 # ================================================================================================= #
 
 def get_gram_blocks(train_quantum_kernel, train_target, only_plot_stuff=False):
+    
     classes_counts = train_target.value_counts().sort_index()
 
     # indices used to mark the blocks
@@ -779,6 +793,7 @@ def get_gram_blocks(train_quantum_kernel, train_target, only_plot_stuff=False):
 #######################################################################################
 
 def gram_eval(train_quantum_kernel, train_target):
+    
     b1, b2, b3 = get_gram_blocks(train_quantum_kernel, train_target)
     
     density_b1 = b1.mean()
@@ -800,7 +815,7 @@ def gram_eval(train_quantum_kernel, train_target):
 #######################################################################################
 
 
-def run_kernel_evaluation(X, X_train, y_train, X_test, y_test,
+def run_kernel_evaluation(X_train, y_train, X_test, y_test,
                           param_grid, range_list, j, 
                           shots=1024, 
                           plot_stuff=True, model=False):
@@ -859,7 +874,7 @@ def run_kernel_evaluation(X, X_train, y_train, X_test, y_test,
         # this will take longer because of the calculation of the test kernel matrix!
         if model:
           
-            q_gram_train, cr = qsvm(X, X_train, y_train, X_test, y_test, reps, paulis, entanglement, shots,
+            q_gram_train, cr = qsvm(X_train, y_train, X_test, y_test, reps, paulis, entanglement, shots,
                                     plot_stuff, quantum_kernel=False)
    
         else:
