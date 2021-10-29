@@ -226,12 +226,12 @@ def pre_process_data(X, y, dpp=False, n_rows=50, n_cols=2, pca=False, n_pcs=2):
     '''
     
     X = pd.DataFrame(X, 
-                 columns=[f"x{i+1}" 
-                          for i in range(X.shape[1])]) if not isinstance(X, (pd.DataFrame, 
-                                                                             pd.core.frame.DataFrame)) else X
+                     columns=[f"x{i+1}" 
+                              for i in range(X.shape[1])]) if not isinstance(X, (pd.DataFrame, 
+                                                                                 pd.core.frame.DataFrame)) else X
     
     y = pd.Series(y, name="y") if not isinstance(y, (pd.DataFrame, 
-                                                 pd.core.frame.DataFrame)) else y
+                                                     pd.core.frame.DataFrame)) else y
     
     # sub-sampling ____________________________________________
     
@@ -244,7 +244,7 @@ def pre_process_data(X, y, dpp=False, n_rows=50, n_cols=2, pca=False, n_pcs=2):
         
         X = subsample_pca(X, n_pcs)
         
-    # scale always. if already scaled, there's no effect, so that's okay
+    # scale always. if already scaled in subsampling, there's no effect, so that's okay
     X = pd.DataFrame(StandardScaler().fit_transform(X),
                      index=X.index)
 
@@ -304,7 +304,12 @@ def show_figure(fig):
 def plot_decision_boundary(model, X_train, y_train, X_test, y_test,
                            title="decision boundary", border=None, spacing=0.05,
                            quantum_kernel=True, reps=None, paulis=None, entanglement=None,
-                           shots=None):
+                           shots=1024):
+    '''
+    this functions plot the decision boundary associated to a given classifier "model"
+    this works both for classical models as well as SVM with quantum kernel.
+    naturally, can only plot if data is 2d.
+    '''
     
     # to construct the meshgrid below, I must look to the entire feature space.
     # in order to do so, I'll concatenate training and testing data. 
@@ -338,7 +343,9 @@ def plot_decision_boundary(model, X_train, y_train, X_test, y_test,
     
     if quantum_kernel:
         
-        gram_grid = construct_quantum_gram(reps, paulis, entanglement, np.c_[xx.ravel(), yy.ravel()], X_train, shots, plot_stuff=False)
+        gram_grid = construct_quantum_gram(reps, paulis, entanglement, 
+                                           np.c_[xx.ravel(), yy.ravel()], X_train, 
+                                           shots, plot_stuff=False)
         
         Z = model.predict(gram_grid)
         Z = Z.reshape(xx.shape)
@@ -357,16 +364,21 @@ def plot_decision_boundary(model, X_train, y_train, X_test, y_test,
     else:
         plt.title("Classical model - " + title, fontsize=20)
     
+    # this maps classes labels to integers. that's important because the "Z" param
+    # in plt.contourf must be numeric!!
+    classes_map = {k : v for v, k in enumerate(y_train.sort_values().unique())}
+    Z = np.vectorize(classes_map.get)(Z)
+    
     plt.contourf(xx, yy, Z, cmap="viridis", alpha=0.4)
 
     # training points
     plt.scatter(X_train.iloc[:, 0], X_train.iloc[:, 1],
-                c=y_train, s=20, edgecolor="black", cmap="viridis", 
+                c=y_train.map(classes_map), s=20, edgecolor="black", cmap="viridis", 
                 label="training data")
     
     # test points
     plt.scatter(X_test.iloc[:, 0], X_test.iloc[:, 1],
-                c=y_test, s=120, edgecolor="black", cmap="viridis", marker="*",
+                c=y_test.map(classes_map), s=120, edgecolor="black", cmap="viridis", marker="*",
                 label="test data")
     
     
@@ -438,7 +450,8 @@ def visualize_all(feat_map, data_point, bloch=True, state_city=True,
                   state_hinton=True, qsphere=True):
     '''
     we do not plot the state_city visualization if the number of qubits 
-    (i.e. underlying feature dimension) is higher than 4
+    (i.e. underlying feature dimension) is higher than 4, because the plot gets
+    way too messy to be understandable
     '''
     feat_dim = len(data_point)
     
@@ -769,18 +782,22 @@ def qsvm(X_train, y_train, X_test, y_test, reps, paulis, entanglement, shots=102
 # ================================================================================================= #
 # ================================================================================================= #
 
-def get_gram_blocks(train_quantum_kernel, train_target, only_plot_stuff=False):
-    
-    classes_counts = train_target.value_counts().sort_index()
+def get_gram_blocks(q_kernel, y, only_plot_stuff=False):
+    '''
+    this gets the blocks c00, c10 and c11 from the lower diagonal of a gram matrix.
+    (see: https://github.com/andre-juan/good_quantum_kernels/blob/main/good_quantum_kernels_details.pdf 
+    to understand what are these blocks)
+    '''
+    classes_counts = y.value_counts().sort_index()
 
     # indices used to mark the blocks
     idx_c0 = classes_counts.iloc[0]
     idx_c1 = classes_counts.iloc[1]
 
     # matrices bloks: same class (c00 and c11) and different classes (c10)
-    c00 = train_quantum_kernel[:idx_c0, :idx_c0]
-    c10 = train_quantum_kernel[idx_c0:idx_c0+idx_c1, :idx_c0]
-    c11 = train_quantum_kernel[idx_c1:, idx_c1:]
+    c00 = q_kernel[:idx_c0, :idx_c0]
+    c10 = q_kernel[idx_c0:idx_c0+idx_c1, :idx_c0]
+    c11 = q_kernel[idx_c1:, idx_c1:]
     
     if only_plot_stuff:
         plot_part(c00)
@@ -792,9 +809,13 @@ def get_gram_blocks(train_quantum_kernel, train_target, only_plot_stuff=False):
 #######################################################################################
 #######################################################################################
 
-def gram_eval(train_quantum_kernel, train_target):
+def gram_eval(q_kernel, y):
+    '''
+    calculates de densities of each block, as well as the density_diff (\Delta_\mu)
+    for a given gram matrix.
+    '''
     
-    b1, b2, b3 = get_gram_blocks(train_quantum_kernel, train_target)
+    b1, b2, b3 = get_gram_blocks(q_kernel, y)
     
     density_b1 = b1.mean()
     density_b2 = b2.mean()
@@ -805,7 +826,7 @@ def gram_eval(train_quantum_kernel, train_target):
     
     print(f"metric(s) 2: (00, 10, 11) = {density_b1, density_b2, density_b3}")
     
-    kernel_det = np.linalg.det(train_quantum_kernel)
+    kernel_det = np.linalg.det(q_kernel)
     print(f"metric 3: {kernel_det}")
     
     return density_diff, (density_b1, density_b2, density_b3)
